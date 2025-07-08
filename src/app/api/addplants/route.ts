@@ -60,6 +60,6 @@ export async function GET() {
     return NextResponse.json(plants);
   } catch (error) {
     console.error('Error in GET /api/addplants:', error);
-    return NextResponse.json({ error: 'Failed to fetch plants' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch plants' },{ status: 501  });
   }
 }
