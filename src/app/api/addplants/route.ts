@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'; // <== Important line!
+
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import cloudinary from '@/lib/cloudinary';
@@ -60,6 +62,6 @@ export async function GET() {
     return NextResponse.json(plants);
   } catch (error) {
     console.error('Error in GET /api/addplants:', error);
-    return NextResponse.json({ error: 'Failed to fetch plants' },{ status: 501  });
+    return NextResponse.json({ error: 'Failed to fetch plants' }, { status: 501 });
   }
 }
