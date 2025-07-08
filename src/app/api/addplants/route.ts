@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from 'next/server';
+// import Plant from '@/models/Plant';
+import clientPromise from '@/lib/mongodb';
+import cloudinary from '@/lib/cloudinary';
+import { verifyAdmin } from '@/lib/verifyAdmin';
+
+export async function POST(req: NextRequest) {
+  const user = verifyAdmin(req);
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const data = await req.formData();
+  const file = data.get('image') as File;
+
+  const name = data.get('name') as string;
+  const type = data.get('type') as string;
+  const description = data.get('description') as string;
+  const price = Number(data.get('price'));
+
+  if (!file || !name || !type || !description || !price)
+    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const upload = await new Promise<any>((resolve, reject) => {
+    cloudinary.uploader.upload_stream({ folder: 'nursury' }, (err, result) => {
+      if (err) return reject(err);
+      resolve(result);
+    }).end(buffer);
+  });
+
+  const db = (await clientPromise).db('nursury');
+  await db.collection('plants').insertOne({
+    name,
+    type,
+    description,
+    price,
+    imageUrl: upload.secure_url,
+    createdAt: new Date(),
+  });
+
+  return NextResponse.json({ message: 'Plant added successfully' }, { status: 201 });
+}
+
+
+export async function GET() {
+  const db = (await clientPromise).db('nursury');
+  const plants = await db.collection('plants').find().toArray();
+  return NextResponse.json(plants);
+}
