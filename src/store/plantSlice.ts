@@ -1,30 +1,36 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 
-interface PlantState {
+interface IdentificationResult {
+  result: any; // Use real type if known
+}
+
+interface IdentificationState {
+  result: any | null;
   loading: boolean;
-  result: any;
   error: string | null;
 }
 
-const initialState: PlantState = {
-  loading: false,
+const initialState: IdentificationState = {
   result: null,
+  loading: false,
   error: null,
 };
 
 export const identifyPlant = createAsyncThunk(
   'plant/identifyPlant',
-  async (formData: FormData) => {
-    const response = await fetch('http://localhost:3000/api/plant', {
-      method: 'POST',
-      body: formData,
-    });
+  async (formData: FormData, thunkAPI) => {
+    try {
+      const res = await fetch('http://localhost:3000/api/plant', {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error('Plant identification failed');
+      if (!res.ok) throw new Error('Failed to identify plant');
+
+      return await res.json();
+    } catch (err: any) {
+      return thunkAPI.rejectWithValue(err.message || 'Identification error');
     }
-
-    return await response.json();
   }
 );
 
@@ -35,14 +41,12 @@ const plantSlice = createSlice({
     clearResult(state) {
       state.result = null;
       state.error = null;
-      state.loading = false;
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(identifyPlant.pending, (state) => {
         state.loading = true;
-        state.result = null;
         state.error = null;
       })
       .addCase(identifyPlant.fulfilled, (state, action: PayloadAction<any>) => {
@@ -51,7 +55,7 @@ const plantSlice = createSlice({
       })
       .addCase(identifyPlant.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message || 'Something went wrong';
+        state.error = action.payload as string;
       });
   },
 });
