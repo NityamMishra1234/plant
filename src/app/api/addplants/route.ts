@@ -1,50 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import Plant from '@/models/Plant';
 import clientPromise from '@/lib/mongodb';
 import cloudinary from '@/lib/cloudinary';
 import { verifyAdmin } from '@/lib/verifyAdmin';
 
 export async function POST(req: NextRequest) {
-  const user = verifyAdmin(req);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const contentType = req.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('multipart/form-data')) {
+      return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
+    }
 
-  const data = await req.formData();
-  const file = data.get('image') as File;
+    const user = verifyAdmin(req);
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const name = data.get('name') as string;
-  const type = data.get('type') as string;
-  const description = data.get('description') as string;
-  const price = Number(data.get('price'));
+    const data = await req.formData();
+    const file = data.get('image') as File;
 
-  if (!file || !name || !type || !description || !price)
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    const name = data.get('name') as string;
+    const type = data.get('type') as string;
+    const description = data.get('description') as string;
+    const price = Number(data.get('price'));
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
+    if (!file || !name || !type || !description || !price) {
+      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
+    }
 
-  const upload = await new Promise<any>((resolve, reject) => {
-    cloudinary.uploader.upload_stream({ folder: 'nursury' }, (err, result) => {
-      if (err) return reject(err);
-      resolve(result);
-    }).end(buffer);
-  });
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-  const db = (await clientPromise).db('nursury');
-  await db.collection('plants').insertOne({
-    name,
-    type,
-    description,
-    price,
-    imageUrl: upload.secure_url,
-    createdAt: new Date(),
-  });
+    const upload = await new Promise<any>((resolve, reject) => {
+      cloudinary.uploader.upload_stream({ folder: 'nursury' }, (err, result) => {
+        if (err) return reject(err);
+        resolve(result);
+      }).end(buffer);
+    });
 
-  return NextResponse.json({ message: 'Plant added successfully' }, { status: 201 });
+    const db = (await clientPromise).db('nursury');
+    await db.collection('plants').insertOne({
+      name,
+      type,
+      description,
+      price,
+      imageUrl: upload.secure_url,
+      createdAt: new Date(),
+    });
+
+    return NextResponse.json({ message: 'Plant added successfully' }, { status: 201 });
+
+  } catch (error) {
+    console.error('Error in POST /api/addplants:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 }
 
-
 export async function GET() {
-  const db = (await clientPromise).db('nursury');
-  const plants = await db.collection('plants').find().toArray();
-  return NextResponse.json(plants);
+  try {
+    const db = (await clientPromise).db('nursury');
+    const plants = await db.collection('plants').find().toArray();
+    return NextResponse.json(plants);
+  } catch (error) {
+    console.error('Error in GET /api/addplants:', error);
+    return NextResponse.json({ error: 'Failed to fetch plants' }, { status: 500 });
+  }
 }
