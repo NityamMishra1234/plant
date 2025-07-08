@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import cloudinary from '@/lib/cloudinary';
@@ -6,8 +7,9 @@ import { verifyAdmin } from '@/lib/verifyAdmin';
 
 export async function POST(req: NextRequest) {
   try {
-    const contentType = req.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('multipart/form-data')) {
+    // Skip this check entirely if headers are unavailable
+    const contentType = req.headers?.get?.('content-type') || '';
+    if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
     }
 
