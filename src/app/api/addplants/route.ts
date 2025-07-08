@@ -1,5 +1,4 @@
-export const dynamic = 'force-dynamic'; // <== Important line!
-
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import cloudinary from '@/lib/cloudinary';
